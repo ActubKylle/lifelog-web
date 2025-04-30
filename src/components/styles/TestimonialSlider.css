@@ -1,0 +1,57 @@
+/* src/components/styles/TestimonialSlider.css */
+
+.testimonial-slider-container {
+    padding: 0 20px;
+    margin-bottom: 50px;
+  }
+  
+  /* Custom styling for the slider dots */
+  .testimonial-slider .slick-dots {
+    bottom: -40px;
+  }
+  
+  .testimonial-slider .slick-dots li button:before {
+    font-size: 12px;
+    color: #6366f1; /* primary-600 equivalent */
+    opacity: 0.3;
+  }
+  
+  .testimonial-slider .slick-dots li.slick-active button:before {
+    color: #4f46e5; /* primary-700 equivalent */
+    opacity: 1;
+  }
+  
+  /* Smooth transitions */
+  .testimonial-slider .slick-slide {
+    opacity: 0.5;
+    transition: all 0.3s ease;
+    transform: scale(0.9);
+  }
+  
+  .testimonial-slider .slick-slide.slick-active {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .testimonial-slider-container {
+      padding: 0;
+    }
+  }
+  
+  /* Animation for testimonial cards */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .testimonial-slider .slick-slide.slick-active > div > div {
+    animation: fadeInUp 0.6s ease forwards;
+  }
