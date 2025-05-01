@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FiArrowLeft, FiRefreshCw, FiTrash2 } from 'react-icons/fi';
+import Swal from 'sweetalert2';
 import habitService from '../services/habitService';
 import Layout from '../components/layout/Layout';
 
@@ -56,22 +57,59 @@ const ArchivedHabitsPage = () => {
     }
   };
   
-  const handleDeleteHabit = async (habitId) => {
-    if (window.confirm('Are you sure you want to permanently delete this habit? This action cannot be undone.')) {
+  const handleDeleteHabit = async (habitId, habitName) => {
+    // Use SweetAlert2 for confirmation instead of window.confirm
+    const result = await Swal.fire({
+      title: 'Permanently Delete Habit',
+      html: `
+        <p>Are you sure you want to permanently delete <strong>${habitName}</strong>?</p>
+        <p class="text-red-500 text-sm mt-2">This action cannot be undone.</p>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+      focusCancel: true
+    });
+    
+    if (result.isConfirmed) {
       try {
-        const loadingToastId = toast.loading("Permanently deleting habit...");
+        // Show loading state
+        Swal.fire({
+          title: 'Deleting...',
+          html: 'Please wait while we delete this habit.',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
         
         console.log("Permanently deleting habit ID:", habitId);
         await habitService.deleteHabit(habitId);
         
-        toast.dismiss(loadingToastId);
-        toast.success("Habit permanently deleted");
+        // Show success message
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'The habit has been permanently deleted.',
+          icon: 'success',
+          confirmButtonColor: '#4f46e5'
+        });
         
         // Remove the deleted habit from the state
         setHabits(habits.filter(habit => habit.id !== habitId));
       } catch (err) {
         console.error('Error permanently deleting habit:', err);
-        toast.error("Failed to delete habit. Please try again.");
+        
+        Swal.fire({
+          title: 'Error!',
+          text: 'Failed to delete habit. Please try again.',
+          icon: 'error',
+          confirmButtonColor: '#4f46e5'
+        });
       }
     }
   };
@@ -143,7 +181,7 @@ const ArchivedHabitsPage = () => {
                   <h3 className="text-lg font-medium text-gray-900 truncate">{habit.name}</h3>
                   <div>
                     <button
-                      onClick={() => handleDeleteHabit(habit.id)}
+                      onClick={() => handleDeleteHabit(habit.id, habit.name)}
                       className="text-gray-400 hover:text-red-500"
                       title="Delete Permanently"
                     >

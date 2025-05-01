@@ -1,8 +1,9 @@
 // src/components/habits/HabitDetail.js
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import {FiArchive, FiEdit2, FiArrowLeft, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiArchive, FiEdit2, FiArrowLeft, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { Line } from 'react-chartjs-2';
+import Swal from 'sweetalert2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,8 +15,9 @@ import {
   Legend,
 } from 'chart.js';
 import habitService from '../../services/habitService';
-import checkInService from '../../services/checkInService';
-import { toast } from 'react-toastify';
+import { confirmAction } from '../../services/confirmService';
+import { showToast } from '../../services/toastService';
+
 // Register ChartJS components
 ChartJS.register(
   CategoryScale,
@@ -105,6 +107,52 @@ const HabitDetail = () => {
     },
   };
 
+  const handleArchive = async () => {
+    try {
+      // Use the confirmAction service for a better UX
+      const result = await confirmAction.archive(
+        'Archive Habit', 
+        `Are you sure you want to archive <strong>${habit.name}</strong>?<br>
+        <span class="text-gray-500 text-sm">You can restore it later from the Archived Habits section.</span>`
+      );
+      
+      if (result.isConfirmed) {
+        // Show loading state
+        const loadingSwal = Swal.fire({
+          title: 'Archiving habit...',
+          html: 'Please wait while we archive this habit.',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Archive the habit
+        await habitService.archiveHabit(habit.id);
+        
+        // Close loading dialog and show success
+        loadingSwal.close();
+        await Swal.fire({
+          icon: 'success',
+          title: 'Habit Archived',
+          text: 'The habit has been successfully archived.',
+          confirmButtonColor: '#4f46e5'
+        });
+        
+        // Navigate back to dashboard
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error('Error archiving habit:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to archive habit. Please try again.',
+        confirmButtonColor: '#4f46e5'
+      });
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -129,48 +177,29 @@ const HabitDetail = () => {
     );
   }
 
-  const handleArchive = async () => {
-    if (window.confirm('Are you sure you want to archive this habit? It will be removed from your active habits.')) {
-      try {
-        const loadingToastId = toast.loading("Archiving habit...");
-        
-        console.log('Archiving habit ID:', id);
-        await habitService.archiveHabit(id);
-        
-        toast.dismiss(loadingToastId);
-        toast.success("Habit archived successfully!");
-        
-        // Navigate back to dashboard
-        navigate('/dashboard');
-      } catch (err) {
-        console.error('Error archiving habit:', err);
-        toast.error("Failed to archive habit. Please try again.");
-      }
-    }
-  };
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-  <div className="flex items-center">
-    <Link to="/dashboard" className="text-gray-500 hover:text-gray-700 mr-4">
-      <FiArrowLeft className="h-5 w-5" />
-    </Link>
-    <h2 className="text-2xl font-bold text-gray-900">{habit.name}</h2>
-  </div>
-  <div className="flex space-x-2">
-    <Link to={`/habits/${habit.id}/edit`} className="btn btn-secondary">
-      <FiEdit2 className="inline-block mr-2" />
-      Edit
-    </Link>
-    <button 
-      onClick={handleArchive}
-      className="btn btn-secondary"
-    >
-      <FiArchive className="inline-block mr-2" />
-      Archive
-    </button>
-  </div>
-</div>
+        <div className="flex items-center">
+          <Link to="/dashboard" className="text-gray-500 hover:text-gray-700 mr-4">
+            <FiArrowLeft className="h-5 w-5" />
+          </Link>
+          <h2 className="text-2xl font-bold text-gray-900">{habit.name}</h2>
+        </div>
+        <div className="flex space-x-2">
+          <Link to={`/habits/${habit.id}/edit`} className="btn btn-secondary">
+            <FiEdit2 className="inline-block mr-2" />
+            Edit
+          </Link>
+          <button 
+            onClick={handleArchive}
+            className="btn btn-secondary"
+          >
+            <FiArchive className="inline-block mr-2" />
+            Archive
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card">
@@ -181,19 +210,25 @@ const HabitDetail = () => {
           
           <div className="mt-4">
             <div className="flex justify-between text-sm mb-1">
-            <span>Progress</span>
-              <span>{habit.progress_percentage}%</span>
+              <span>Progress</span>
+              <span>
+                {typeof habit.progress_percentage !== 'undefined' 
+                  ? habit.progress_percentage.toFixed(1) 
+                  : '0'}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-primary-600 h-2 rounded-full" 
-                style={{ width: `${habit.progress_percentage}%` }}
+                style={{ width: `${habit.progress_percentage || 0}%` }}
               ></div>
             </div>
           </div>
           
           <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700">Current streak: {habit.current_streak} days</p>
+            <p className="text-sm font-medium text-gray-700">
+              Current streak: {habit.current_streak || 0} days
+            </p>
           </div>
         </div>
         
